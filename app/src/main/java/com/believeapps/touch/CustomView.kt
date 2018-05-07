@@ -13,6 +13,10 @@ import android.widget.FrameLayout
 import android.view.ViewGroup
 import android.util.DisplayMetrics
 import java.lang.Math.abs
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.widget.ImageView
 
 
 class CustomView : FrameLayout {
@@ -41,20 +45,33 @@ class CustomView : FrameLayout {
         val size = calculateWidth() / count
 
         addViews(size, count)
+
     }
 
     private fun addViews(size: Int, count: Int) {
+        val srcBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.girl)
+        val bitmap = getResizedBitmap(srcBitmap, size * count, size * count)
+        val viewList = arrayListOf<View>()
         for (i in 0 until count) {
             for (j in 0 until count) {
-                if (i == count - 1 && j == count - 1) return
-                val view = View(context).apply {
+                if (i == count - 1 && j == count - 1) break
+                val view = ImageView(context).apply {
                     layoutParams = LayoutParams(size, size)
-                    setBackgroundColor(ContextCompat.getColor(context, android.R.color.darker_gray))
+                    setImageBitmap(Bitmap.createBitmap(bitmap, j * size, i * size, size, size))
+                }
+                viewList.add(view)
+            }
+        }
+        viewList.shuffle()
+        var indx = 0
+        for (i in 0 until count) {
+            for (j in 0 until count) {
+                if (i == count - 1 && j == count - 1) break
+                addView(viewList[indx].apply {
                     (layoutParams as MarginLayoutParams).leftMargin = (j * size)
                     (layoutParams as MarginLayoutParams).topMargin = (i * size)
-                }
-
-                addView(view)
+                })
+                indx++
             }
         }
     }
@@ -152,8 +169,26 @@ class CustomView : FrameLayout {
         with(rect) {
             return (left < right && top < bottom  // check for empty first
 
-                    && x > left && x < right && y > top && y < bottom )
+                    && x > left && x < right && y > top && y < bottom)
         }
+    }
+
+
+    fun getResizedBitmap(bm: Bitmap, newWidth: Int, newHeight: Int): Bitmap {
+        val width = bm.width
+        val height = bm.height
+        val scaleWidth = newWidth.toFloat() / width
+        val scaleHeight = newHeight.toFloat() / height
+        // CREATE A MATRIX FOR THE MANIPULATION
+        val matrix = Matrix()
+        // RESIZE THE BIT MAP
+        matrix.postScale(scaleWidth, scaleHeight)
+
+        // "RECREATE" THE NEW BITMAP
+        val resizedBitmap = Bitmap.createBitmap(
+                bm, 0, 0, width, height, matrix, false)
+        bm.recycle()
+        return resizedBitmap
     }
 
 }
