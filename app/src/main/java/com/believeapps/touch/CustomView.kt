@@ -1,7 +1,9 @@
 package com.believeapps.touch
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Rect
+import android.support.v4.content.ContextCompat
 import android.support.v4.widget.ViewDragHelper
 import android.util.AttributeSet
 import android.util.Log
@@ -9,6 +11,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.view.ViewGroup
+import android.util.DisplayMetrics
+import java.lang.Math.abs
 
 
 class CustomView : FrameLayout {
@@ -33,6 +37,32 @@ class CustomView : FrameLayout {
 
     private fun init() {
         mDragHelper = ViewDragHelper.create(this, 1.0F, getDragHelperCallback())
+        val count = 2
+        val size = calculateWidth() / count
+
+        addViews(size, count)
+    }
+
+    private fun addViews(size: Int, count: Int) {
+        for (i in 0 until count) {
+            for (j in 0 until count) {
+                if (i == count - 1 && j == count - 1) return
+                val view = View(context).apply {
+                    layoutParams = LayoutParams(size, size)
+                    setBackgroundColor(ContextCompat.getColor(context, android.R.color.darker_gray))
+                    (layoutParams as MarginLayoutParams).leftMargin = (j * size)
+                    (layoutParams as MarginLayoutParams).topMargin = (i * size)
+                }
+
+                addView(view)
+            }
+        }
+    }
+
+    private fun calculateWidth(): Int {
+        val displayMetrics = DisplayMetrics()
+        (context as Activity).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics)
+        return displayMetrics.widthPixels
     }
 
     private fun getDragHelperCallback(): ViewDragHelper.Callback {
@@ -46,21 +76,33 @@ class CustomView : FrameLayout {
             }
 
             override fun clampViewPositionHorizontal(child: View, left: Int, dx: Int): Int {
-                Log.d("clampX", "${left} + ${dx} + ${width} + ${height}")
+                val newPosition = when {
+                    dx < -1 -> left + (abs(dx) -1)
+                    dx > 1 -> left - (dx - 1)
+                    else -> left
+                }
+                Log.d("clampX", "${left}  ${dx}  ${newPosition}")
                 return when {
-                    left < 0 -> 0
-                    left + child.width > width -> width - child.width
-                    checkIfCollidesHorizonal(this@CustomView, child, dx < 0, left) -> child.x.toInt()
+                    newPosition < 0 -> 0
+                    newPosition + child.width > width -> width - child.width
+                    checkIfCollidesHorizonal(this@CustomView, child, dx < 0, newPosition) -> {
+                        if(dx < 0) newPosition + 1 else newPosition - 1
+                    }
                     else -> left
                 }
             }
 
             override fun clampViewPositionVertical(child: View, top: Int, dy: Int): Int {
-                Log.d("clampY", "${top} + ${dy}")
+                val newPosition = when {
+                    dy < -1 -> top + (abs(dy) -1)
+                    dy > 1 -> top - (dy - 1)
+                    else -> top
+                }
+                Log.d("clampY", "${top} + ${dy} + ${newPosition}")
                 return when {
-                    top < 0 -> 0
-                    top + child.height > height -> height - child.height
-                    checkIfCollidesVertivaly(this@CustomView, child, dy > 0, top) -> child.y.toInt()
+                    newPosition < 0 -> 0
+                    newPosition + child.height > height -> height - child.height
+                    checkIfCollidesVertivaly(this@CustomView, child, dy > 0, newPosition) -> child.y.toInt()
                     else -> top
                 }
             }
@@ -78,7 +120,7 @@ class CustomView : FrameLayout {
     }
 
     private fun checkIfCollidesHorizonal(viewGroup: ViewGroup, view: View, leftCollision: Boolean, left: Int): Boolean {
-        val x: Int = if (leftCollision) left else left + view.width
+        val x: Int = if (leftCollision) left else view.right
         val topY: Int = view.top
         val lowY: Int = view.bottom
         val centerY: Int = (topY + lowY) / 2
