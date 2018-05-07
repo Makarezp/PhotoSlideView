@@ -37,7 +37,7 @@ class CustomView : FrameLayout {
 
     private fun init() {
         mDragHelper = ViewDragHelper.create(this, 1.0F, getDragHelperCallback())
-        val count = 2
+        val count = 4
         val size = calculateWidth() / count
 
         addViews(size, count)
@@ -76,35 +76,27 @@ class CustomView : FrameLayout {
             }
 
             override fun clampViewPositionHorizontal(child: View, left: Int, dx: Int): Int {
-                val newPosition = when {
-                    dx < -1 -> left + (abs(dx) -1)
-                    dx > 1 -> left - (dx - 1)
-                    else -> left
-                }
-                Log.d("clampX", "${left}  ${dx}  ${newPosition}")
+                Log.d("clampX", "${left}  ${dx}")
                 return when {
-                    newPosition < 0 -> 0
-                    newPosition + child.width > width -> width - child.width
-                    checkIfCollidesHorizonal(this@CustomView, child, dx < 0, newPosition) -> {
-                        if(dx < 0) newPosition + 1 else newPosition - 1
-                    }
+                    left < 0 -> 0
+                    left + child.width > width -> width - child.width
+                    checkIfCollidesHorizonal(this@CustomView, child, dx < 0, left) -> child.x.toInt()
                     else -> left
                 }
             }
 
             override fun clampViewPositionVertical(child: View, top: Int, dy: Int): Int {
-                val newPosition = when {
-                    dy < -1 -> top + (abs(dy) -1)
-                    dy > 1 -> top - (dy - 1)
-                    else -> top
-                }
-                Log.d("clampY", "${top} + ${dy} + ${newPosition}")
+                Log.d("clampY", "${top} + ${dy}")
                 return when {
-                    newPosition < 0 -> 0
-                    newPosition + child.height > height -> height - child.height
-                    checkIfCollidesVertivaly(this@CustomView, child, dy > 0, newPosition) -> child.y.toInt()
+                    top < 0 -> 0
+                    top + child.height > height -> height - child.height
+                    checkIfCollidesVertivaly(this@CustomView, child, dy > 0, top) -> child.y.toInt()
                     else -> top
                 }
+            }
+
+            override fun onViewPositionChanged(changedView: View, left: Int, top: Int, dx: Int, dy: Int) {
+                Log.d("clampChanged", "${left} ${top} ${dx} ${dy}")
             }
         }
     }
@@ -120,7 +112,8 @@ class CustomView : FrameLayout {
     }
 
     private fun checkIfCollidesHorizonal(viewGroup: ViewGroup, view: View, leftCollision: Boolean, left: Int): Boolean {
-        val x: Int = if (leftCollision) left else view.right
+        Log.d("clampHotizontalCheck", "${leftCollision}")
+        val x: Int = if (leftCollision) left else left + view.width
         val topY: Int = view.top
         val lowY: Int = view.bottom
         val centerY: Int = (topY + lowY) / 2
@@ -130,7 +123,8 @@ class CustomView : FrameLayout {
     }
 
     private fun checkIfCollidesVertivaly(viewGroup: ViewGroup, view: View, topCollision: Boolean, top: Int): Boolean {
-        val y: Int = if (topCollision) view.bottom else top
+        Log.d("clampVertical                                                                                   Check", "${topCollision}")
+        val y: Int = if (topCollision) top + view.height else top
         val leftX: Int = view.left
         val rightX: Int = view.right
         val centerX: Int = (leftX + rightX) / 2
@@ -158,7 +152,7 @@ class CustomView : FrameLayout {
         with(rect) {
             return (left < right && top < bottom  // check for empty first
 
-                    && x > left && x < right && y > top && y < bottom)
+                    && x > left && x < right && y > top && y < bottom )
         }
     }
 
