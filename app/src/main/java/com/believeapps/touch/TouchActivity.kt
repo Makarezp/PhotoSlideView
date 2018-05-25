@@ -1,13 +1,12 @@
 package com.believeapps.touch
 
 import android.graphics.Rect
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.support.v4.widget.ViewDragHelper
+import androidx.customview.widget.ViewDragHelper
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import kotlinx.android.synthetic.main.activity_touch.*
 
 class TouchActivity : AppCompatActivity() {

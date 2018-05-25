@@ -3,8 +3,8 @@ package com.believeapps.touch
 import android.app.Activity
 import android.content.Context
 import android.graphics.Rect
-import android.support.v4.content.ContextCompat
-import android.support.v4.widget.ViewDragHelper
+import androidx.core.content.ContextCompat
+import androidx.customview.widget.ViewDragHelper
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
@@ -21,7 +21,7 @@ import android.widget.ImageView
 
 class CustomView : FrameLayout {
 
-    private lateinit var mDragHelper: ViewDragHelper
+    private lateinit var mDragHelper: androidx.customview.widget.ViewDragHelper
 
     constructor(context: Context) : super(context) {
         init()
@@ -40,7 +40,7 @@ class CustomView : FrameLayout {
     }
 
     private fun init() {
-        mDragHelper = ViewDragHelper.create(this, 1.0F, getDragHelperCallback())
+        mDragHelper = androidx.customview.widget.ViewDragHelper.create(this, 1.0F, getDragHelperCallback())
         val count = 4
         val size = calculateWidth() / count
 
@@ -82,8 +82,8 @@ class CustomView : FrameLayout {
         return displayMetrics.widthPixels
     }
 
-    private fun getDragHelperCallback(): ViewDragHelper.Callback {
-        return object : ViewDragHelper.Callback() {
+    private fun getDragHelperCallback(): androidx.customview.widget.ViewDragHelper.Callback {
+        return object : androidx.customview.widget.ViewDragHelper.Callback() {
             override fun tryCaptureView(child: View, pointerId: Int): Boolean {
                 return true
             }
@@ -140,7 +140,7 @@ class CustomView : FrameLayout {
     }
 
     private fun checkIfCollidesVertivaly(viewGroup: ViewGroup, view: View, topCollision: Boolean, top: Int): Boolean {
-        Log.d("clampVertical                                                                                   Check", "${topCollision}")
+        Log.d("clampVerticalCheck", "${topCollision}")
         val y: Int = if (topCollision) top + view.height else top
         val leftX: Int = view.left
         val rightX: Int = view.right
