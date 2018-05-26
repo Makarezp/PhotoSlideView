@@ -3,7 +3,6 @@ package com.believeapps.touch
 import android.app.Activity
 import android.content.Context
 import android.graphics.Rect
-import androidx.core.content.ContextCompat
 import androidx.customview.widget.ViewDragHelper
 import android.util.AttributeSet
 import android.util.Log
@@ -12,10 +11,8 @@ import android.view.View
 import android.widget.FrameLayout
 import android.view.ViewGroup
 import android.util.DisplayMetrics
-import java.lang.Math.abs
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import android.widget.ImageView
 import androidx.core.graphics.scale
 import androidx.core.view.children
@@ -112,10 +109,29 @@ class CustomView : FrameLayout {
 
             override fun clampViewPositionVertical(child: View, top: Int, dy: Int): Int {
                 Log.d("clampY", "${top} + ${dy}")
+                val isBottomCollision = dy > 0
                 return when {
                     top < 0 -> 0
                     top + child.height > height -> height - child.height
-                    checkIfCollidesVertivaly(this@CustomView, child, dy > 0, top) -> child.y.toInt()
+                    checkIfCollidesVerticaly(this@CustomView, child, isBottomCollision, top) -> child.y.toInt()
+                    checkIfShouldSnapVertically(this@CustomView, child, isBottomCollision, top, 50) -> {
+
+                        val rect = getRectOfView(this@CustomView, child) {
+                            it.contains(child.x.toInt(), if (isBottomCollision) {
+                                Log.d("is-bottom", "${child.y.toInt()}")
+                                child.bottom + 50
+                            } else {
+                                child.y.toInt() - child.height + 50
+                            })
+                        }
+
+                        return if (rect != null) {
+                            return if (isBottomCollision){
+                                rect.top - child.height
+                            } else rect.bottom
+                        } else child.y.toInt() + (if (isBottomCollision) 50 else -50)
+
+                    }
                     else -> top
                 }
             }
@@ -124,6 +140,18 @@ class CustomView : FrameLayout {
                 Log.d("clampChanged", "${left} ${top} ${dx} ${dy}")
             }
         }
+    }
+
+    private fun checkIfShouldSnapVertically(viewGroup: ViewGroup, view: View, isBottomCollision: Boolean, top: Int, snapValue: Int): Boolean {
+        val snap = if (isBottomCollision) snapValue else 0 - snapValue
+        val y: Int = (if (isBottomCollision) top + view.height else top) + snap
+        val leftX: Int = view.left
+        val rightX: Int = view.right
+        val centerX: Int = (leftX + rightX) / 2
+        return executeOnEveryHitRect(viewGroup, view) {
+            contains(it, leftX, y) || contains(it, rightX, y) || contains(it, centerX, y)
+        }
+
     }
 
     private fun checkIfCollidesHorizonal(viewGroup: ViewGroup, view: View, leftCollision: Boolean, left: Int): Boolean {
@@ -137,9 +165,9 @@ class CustomView : FrameLayout {
         }
     }
 
-    private fun checkIfCollidesVertivaly(viewGroup: ViewGroup, view: View, topCollision: Boolean, top: Int): Boolean {
-        Log.d("clampVerticalCheck", "${topCollision}")
-        val y: Int = if (topCollision) top + view.height else top
+    private fun checkIfCollidesVerticaly(viewGroup: ViewGroup, view: View, isBottomCollision: Boolean, top: Int): Boolean {
+        Log.d("clampVerticalCheck", "${isBottomCollision}")
+        val y: Int = if (isBottomCollision) top + view.height else top
         val leftX: Int = view.left
         val rightX: Int = view.right
         val centerX: Int = (leftX + rightX) / 2
@@ -159,6 +187,19 @@ class CustomView : FrameLayout {
                     if (checkIfContains(bounds)) return true
                 }
         return false
+    }
+
+    private fun getRectOfView(viewGroup: ViewGroup,
+                              view: View,
+                              checkIfContains: (Rect) -> Boolean): Rect? {
+        viewGroup.children
+                .filter { it != view }
+                .forEach {
+                    val bounds = Rect()
+                    it.getHitRect(bounds)
+                    if (checkIfContains(bounds)) return bounds
+                }
+        return null
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
