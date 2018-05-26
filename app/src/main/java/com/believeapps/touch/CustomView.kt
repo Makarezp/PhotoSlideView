@@ -130,8 +130,8 @@ class CustomView : FrameLayout {
                 val isBottomCollision = dy > 0
                 val snapValue = child.height / 3
                 return when {
-                    top < 0 -> 0
-                    top + child.height > height -> height - child.height
+                    top < 0 + snapValue && !isBottomCollision -> 0
+                    top + child.height > height - snapValue && isBottomCollision -> height - child.height
                     checkIfCollidesVerticaly(this@CustomView, child, isBottomCollision, top) -> child.y.toInt()
                     checkIfShouldSnapVertically(this@CustomView, child, isBottomCollision, top, snapValue) -> {
 
