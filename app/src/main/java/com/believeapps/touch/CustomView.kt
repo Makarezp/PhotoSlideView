@@ -98,11 +98,29 @@ class CustomView : FrameLayout {
             }
 
             override fun clampViewPositionHorizontal(child: View, left: Int, dx: Int): Int {
-                Log.d("clampX", "${left}  ${dx}")
+                val isLeftCollision = dx < 0
+                val snapValue = child.width / 3
                 return when {
                     left < 0 -> 0
                     left + child.width > width -> width - child.width
-                    checkIfCollidesHorizonal(this@CustomView, child, dx < 0, left) -> child.x.toInt()
+                    checkIfCollidesHorizonal(this@CustomView, child, isLeftCollision, left) -> child.x.toInt()
+                    checkIfShouldSnapHorizontally(this@CustomView, child, isLeftCollision, left, snapValue) -> {
+
+                        val rect = getRectOfView(this@CustomView, child) {
+                            it.contains(if (isLeftCollision) {
+                                child.left - snapValue
+                            } else {
+                                child.right + snapValue
+                            }, child.top)
+                        }
+
+                        return if (rect != null) {
+                            return if (isLeftCollision) {
+                                rect.right
+                            } else rect.left - child.width
+                        } else child.x.toInt() + (if (isLeftCollision) - snapValue else snapValue)
+
+                    }
                     else -> left
                 }
             }
@@ -110,26 +128,27 @@ class CustomView : FrameLayout {
             override fun clampViewPositionVertical(child: View, top: Int, dy: Int): Int {
                 Log.d("clampY", "${top} + ${dy}")
                 val isBottomCollision = dy > 0
+                val snapValue = child.height / 3
                 return when {
                     top < 0 -> 0
                     top + child.height > height -> height - child.height
                     checkIfCollidesVerticaly(this@CustomView, child, isBottomCollision, top) -> child.y.toInt()
-                    checkIfShouldSnapVertically(this@CustomView, child, isBottomCollision, top, 50) -> {
+                    checkIfShouldSnapVertically(this@CustomView, child, isBottomCollision, top, snapValue) -> {
 
                         val rect = getRectOfView(this@CustomView, child) {
                             it.contains(child.x.toInt(), if (isBottomCollision) {
                                 Log.d("is-bottom", "${child.y.toInt()}")
-                                child.bottom + 50
+                                child.bottom + snapValue
                             } else {
-                                child.y.toInt() - child.height + 50
+                                child.y.toInt() - child.height + snapValue
                             })
                         }
 
                         return if (rect != null) {
-                            return if (isBottomCollision){
+                            return if (isBottomCollision) {
                                 rect.top - child.height
                             } else rect.bottom
-                        } else child.y.toInt() + (if (isBottomCollision) 50 else -50)
+                        } else child.y.toInt() + (if (isBottomCollision) snapValue else - snapValue)
 
                     }
                     else -> top
@@ -148,10 +167,20 @@ class CustomView : FrameLayout {
         val leftX: Int = view.left
         val rightX: Int = view.right
         val centerX: Int = (leftX + rightX) / 2
-        return executeOnEveryHitRect(viewGroup, view) {
+        return checkForEveryViewRect(viewGroup, view) {
             contains(it, leftX, y) || contains(it, rightX, y) || contains(it, centerX, y)
         }
+    }
 
+    private fun checkIfShouldSnapHorizontally(viewGroup: ViewGroup, view: View, isLeftCollision: Boolean, left: Int, snapValue: Int): Boolean {
+        val snap = if (isLeftCollision) - snapValue else snapValue
+        val x: Int = (if (isLeftCollision) left else left + view.width) + snap
+        val topY: Int = view.top
+        val lowY: Int = view.bottom
+        val centerY: Int = (topY + lowY) / 2
+        return checkForEveryViewRect(viewGroup, view) {
+            contains(it, x, topY) || contains(it, x, lowY) || contains(it, x, centerY)
+        }
     }
 
     private fun checkIfCollidesHorizonal(viewGroup: ViewGroup, view: View, leftCollision: Boolean, left: Int): Boolean {
@@ -160,7 +189,7 @@ class CustomView : FrameLayout {
         val topY: Int = view.top
         val lowY: Int = view.bottom
         val centerY: Int = (topY + lowY) / 2
-        return executeOnEveryHitRect(viewGroup, view) {
+        return checkForEveryViewRect(viewGroup, view) {
             contains(it, x, topY) || contains(it, x, lowY) || contains(it, x, centerY)
         }
     }
@@ -171,12 +200,12 @@ class CustomView : FrameLayout {
         val leftX: Int = view.left
         val rightX: Int = view.right
         val centerX: Int = (leftX + rightX) / 2
-        return executeOnEveryHitRect(viewGroup, view) {
+        return checkForEveryViewRect(viewGroup, view) {
             contains(it, leftX, y) || contains(it, rightX, y) || contains(it, centerX, y)
         }
     }
 
-    private fun executeOnEveryHitRect(viewGroup: ViewGroup,
+    private fun checkForEveryViewRect(viewGroup: ViewGroup,
                                       view: View,
                                       checkIfContains: (Rect) -> Boolean): Boolean {
         viewGroup.children
