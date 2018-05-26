@@ -17,6 +17,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.widget.ImageView
+import androidx.core.graphics.scale
+import androidx.core.view.children
 
 
 class CustomView : FrameLayout {
@@ -40,7 +42,7 @@ class CustomView : FrameLayout {
     }
 
     private fun init() {
-        mDragHelper = androidx.customview.widget.ViewDragHelper.create(this, 1.0F, getDragHelperCallback())
+        mDragHelper = ViewDragHelper.create(this, 1.0F, getDragHelperCallback())
         val count = 4
         val size = calculateWidth() / count
 
@@ -49,19 +51,7 @@ class CustomView : FrameLayout {
     }
 
     private fun addViews(size: Int, count: Int) {
-        val srcBitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.girl)
-        val bitmap = getResizedBitmap(srcBitmap, size * count, size * count)
-        val viewList = arrayListOf<View>()
-        for (i in 0 until count) {
-            for (j in 0 until count) {
-                if (i == count - 1 && j == count - 1) break
-                val view = ImageView(context).apply {
-                    layoutParams = LayoutParams(size, size)
-                    setImageBitmap(Bitmap.createBitmap(bitmap, j * size, i * size, size, size))
-                }
-                viewList.add(view)
-            }
-        }
+        val viewList = createListOfPieces(size, count)
         viewList.shuffle()
         var indx = 0
         for (i in 0 until count) {
@@ -76,14 +66,32 @@ class CustomView : FrameLayout {
         }
     }
 
+    private fun createListOfPieces(size: Int, count: Int): ArrayList<View> {
+        val bitmap = BitmapFactory
+                .decodeResource(context.getResources(), R.drawable.girl)
+                .scale(size * count, size * count)
+        val viewList = arrayListOf<View>()
+        for (i in 0 until count) {
+            for (j in 0 until count) {
+                if (i == count - 1 && j == count - 1) break
+                val view = ImageView(context).apply {
+                    layoutParams = LayoutParams(size, size)
+                    setImageBitmap(Bitmap.createBitmap(bitmap, j * size, i * size, size, size))
+                }
+                viewList.add(view)
+            }
+        }
+        return viewList
+    }
+
     private fun calculateWidth(): Int {
         val displayMetrics = DisplayMetrics()
         (context as Activity).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics)
         return displayMetrics.widthPixels
     }
 
-    private fun getDragHelperCallback(): androidx.customview.widget.ViewDragHelper.Callback {
-        return object : androidx.customview.widget.ViewDragHelper.Callback() {
+    private fun getDragHelperCallback(): ViewDragHelper.Callback {
+        return object : ViewDragHelper.Callback() {
             override fun tryCaptureView(child: View, pointerId: Int): Boolean {
                 return true
             }
@@ -118,16 +126,6 @@ class CustomView : FrameLayout {
         }
     }
 
-
-    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
-        return mDragHelper.shouldInterceptTouchEvent(ev)
-    }
-
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        mDragHelper.processTouchEvent(event)
-        return true
-    }
-
     private fun checkIfCollidesHorizonal(viewGroup: ViewGroup, view: View, leftCollision: Boolean, left: Int): Boolean {
         Log.d("clampHotizontalCheck", "${leftCollision}")
         val x: Int = if (leftCollision) left else left + view.width
@@ -153,16 +151,23 @@ class CustomView : FrameLayout {
     private fun executeOnEveryHitRect(viewGroup: ViewGroup,
                                       view: View,
                                       checkIfContains: (Rect) -> Boolean): Boolean {
-        (0 until viewGroup.childCount)
-                .map { viewGroup.getChildAt(it) }
+        viewGroup.children
                 .filter { it != view }
                 .forEach {
                     val bounds = Rect()
-
                     it.getHitRect(bounds)
                     if (checkIfContains(bounds)) return true
                 }
         return false
+    }
+
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        return mDragHelper.shouldInterceptTouchEvent(ev)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        mDragHelper.processTouchEvent(event)
+        return true
     }
 
     private fun contains(rect: Rect, x: Int, y: Int): Boolean {
@@ -172,23 +177,6 @@ class CustomView : FrameLayout {
                     && x > left && x < right && y > top && y < bottom)
         }
     }
-
-
-    fun getResizedBitmap(bm: Bitmap, newWidth: Int, newHeight: Int): Bitmap {
-        val width = bm.width
-        val height = bm.height
-        val scaleWidth = newWidth.toFloat() / width
-        val scaleHeight = newHeight.toFloat() / height
-        // CREATE A MATRIX FOR THE MANIPULATION
-        val matrix = Matrix()
-        // RESIZE THE BIT MAP
-        matrix.postScale(scaleWidth, scaleHeight)
-
-        // "RECREATE" THE NEW BITMAP
-        val resizedBitmap = Bitmap.createBitmap(
-                bm, 0, 0, width, height, matrix, false)
-        bm.recycle()
-        return resizedBitmap
-    }
-
 }
+
+
