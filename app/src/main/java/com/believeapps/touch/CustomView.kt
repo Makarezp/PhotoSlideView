@@ -99,7 +99,7 @@ class CustomView : FrameLayout {
 
             override fun clampViewPositionHorizontal(child: View, left: Int, dx: Int): Int {
                 val isLeftCollision = dx < 0
-                val snapValue = child.width / 3
+                val snapValue = child.width / 2
                 return when {
                     left < 0 + snapValue && isLeftCollision -> 0
                     left + child.width > width - snapValue  && !isLeftCollision -> width - child.width
@@ -128,7 +128,7 @@ class CustomView : FrameLayout {
             override fun clampViewPositionVertical(child: View, top: Int, dy: Int): Int {
                 Log.d("clampY", "${top} + ${dy}")
                 val isBottomCollision = dy > 0
-                val snapValue = child.height / 3
+                val snapValue = child.height / 2
                 return when {
                     top < 0 + snapValue && !isBottomCollision -> 0
                     top + child.height > height - snapValue && isBottomCollision -> height - child.height
