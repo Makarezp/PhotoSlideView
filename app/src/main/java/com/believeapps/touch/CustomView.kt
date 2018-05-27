@@ -12,7 +12,6 @@ import android.widget.FrameLayout
 import android.view.ViewGroup
 import android.util.DisplayMetrics
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.widget.ImageView
 import androidx.core.graphics.scale
 import androidx.core.view.children
@@ -20,7 +19,7 @@ import androidx.core.view.children
 
 class CustomView : FrameLayout {
 
-    private lateinit var mDragHelper: androidx.customview.widget.ViewDragHelper
+    private lateinit var dragHelper: ViewDragHelper
 
     constructor(context: Context) : super(context) {
         init()
@@ -39,16 +38,18 @@ class CustomView : FrameLayout {
     }
 
     private fun init() {
-        mDragHelper = ViewDragHelper.create(this, 1.0F, getDragHelperCallback())
-        val count = 4
-        val size = calculateWidth() / count
-
-        addViews(size, count)
-
+        dragHelper = ViewDragHelper.create(this, 1.0F, getDragHelperCallback())
     }
 
-    private fun addViews(size: Int, count: Int) {
-        val viewList = createListOfPieces(size, count)
+    fun setImage(bitmap: Bitmap) {
+        removeAllViews()
+        val count = 3
+        val size = calculateWidth() / count
+        setBitmap(size, count, bitmap)
+    }
+
+    private fun setBitmap(size: Int, count: Int, bitmap: Bitmap) {
+        val viewList = createListOfPieces(size, count, bitmap)
         viewList.shuffle()
         var indx = 0
         for (i in 0 until count) {
@@ -63,17 +64,15 @@ class CustomView : FrameLayout {
         }
     }
 
-    private fun createListOfPieces(size: Int, count: Int): ArrayList<View> {
-        val bitmap = BitmapFactory
-                .decodeResource(context.getResources(), R.drawable.girl)
-                .scale(size * count, size * count)
+    private fun createListOfPieces(size: Int, count: Int, bitmap: Bitmap): ArrayList<View> {
+        val rescaledBitmap = bitmap.scale(size * count, size * count)
         val viewList = arrayListOf<View>()
         for (i in 0 until count) {
             for (j in 0 until count) {
                 if (i == count - 1 && j == count - 1) break
                 val view = ImageView(context).apply {
                     layoutParams = LayoutParams(size, size)
-                    setImageBitmap(Bitmap.createBitmap(bitmap, j * size, i * size, size, size))
+                    setImageBitmap(Bitmap.createBitmap(rescaledBitmap, j * size, i * size, size, size))
                 }
                 viewList.add(view)
             }
@@ -102,7 +101,7 @@ class CustomView : FrameLayout {
                 val snapValue = child.width / 2
                 return when {
                     left < 0 + snapValue && isLeftCollision -> 0
-                    left + child.width > width - snapValue  && !isLeftCollision -> width - child.width
+                    left + child.width > width - snapValue && !isLeftCollision -> width - child.width
                     checkIfCollidesHorizonal(this@CustomView, child, isLeftCollision, left) -> child.x.toInt()
                     checkIfShouldSnapHorizontally(this@CustomView, child, isLeftCollision, left, snapValue) -> {
 
@@ -118,7 +117,7 @@ class CustomView : FrameLayout {
                             return if (isLeftCollision) {
                                 rect.right
                             } else rect.left - child.width
-                        } else child.x.toInt() + (if (isLeftCollision) - snapValue else snapValue)
+                        } else child.x.toInt() + (if (isLeftCollision) -snapValue else snapValue)
 
                     }
                     else -> left
@@ -148,7 +147,7 @@ class CustomView : FrameLayout {
                             return if (isBottomCollision) {
                                 rect.top - child.height
                             } else rect.bottom
-                        } else child.y.toInt() + (if (isBottomCollision) snapValue else - snapValue)
+                        } else child.y.toInt() + (if (isBottomCollision) snapValue else -snapValue)
 
                     }
                     else -> top
@@ -173,7 +172,7 @@ class CustomView : FrameLayout {
     }
 
     private fun checkIfShouldSnapHorizontally(viewGroup: ViewGroup, view: View, isLeftCollision: Boolean, left: Int, snapValue: Int): Boolean {
-        val snap = if (isLeftCollision) - snapValue else snapValue
+        val snap = if (isLeftCollision) -snapValue else snapValue
         val x: Int = (if (isLeftCollision) left else left + view.width) + snap
         val topY: Int = view.top
         val lowY: Int = view.bottom
@@ -232,11 +231,11 @@ class CustomView : FrameLayout {
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
-        return mDragHelper.shouldInterceptTouchEvent(ev)
+        return dragHelper.shouldInterceptTouchEvent(ev)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        mDragHelper.processTouchEvent(event)
+        dragHelper.processTouchEvent(event)
         return true
     }
 
